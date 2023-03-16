@@ -35,7 +35,8 @@ void enable_caps(char * path_p,cap_value_t * cap_values, int len){
     cap_set_flag(caps,CAP_PERMITTED,len,cap_values,CAP_SET);
     cap_set_flag(caps,CAP_EFFECTIVE,len,cap_values,CAP_SET);
     cap_set_flag(caps,CAP_INHERITABLE,len,cap_values,CAP_SET);
-    if(cap_set_file(path_p,caps)) syslog(LOG_ERR, "pam-login-cap:cap_set_file() ERROR:code:%d, %s",errno,strerror(errno));
+    if(cap_set_file(path_p,caps)) 
+        syslog(LOG_ERR, "pam-login-cap:cap_set_file() ERROR:code:%d, %s",errno,strerror(errno));
     else syslog(LOG_INFO, "pam-login-cap:成功添加权限");
     cap_free(caps);
 }
@@ -46,8 +47,37 @@ void disable_caps(char* path_p,cap_value_t * cap_values, int len)
     cap_set_flag(caps,CAP_PERMITTED,len,cap_values,CAP_CLEAR);
     cap_set_flag(caps,CAP_EFFECTIVE,len,cap_values,CAP_CLEAR);
     cap_set_flag(caps,CAP_INHERITABLE,len,cap_values,CAP_CLEAR);
-    if(cap_set_file(path_p,caps)) syslog(LOG_ERR, "pam-login-cap:cap_set_file() ERROR:code:%d, %s",errno,strerror(errno));
+    if(cap_set_file(path_p,caps)) 
+        syslog(LOG_ERR, "pam-login-cap:cap_set_file() ERROR:code:%d, %s",errno,strerror(errno));
     else syslog(LOG_INFO, "pam-login-cap:成功删除权限");
+    cap_free(caps);
+}
+
+void fix_caps(char* path_p){
+    cap_t caps = cap_get_file(path_p);
+    char * cap_text = cap_to_text(caps, NULL);
+    if(cap_text==NULL)
+    {
+        syslog(LOG_ERR, "pam-login-cap:cap结构已被破坏，尝试进行重建");
+        char * argv[] = {"setcap","",path_p,NULL};
+        pid_t pid;
+        int rtn;
+        pid = fork();
+        if(pid==0)
+        {
+            execv("/bin/setcap", argv);
+            syslog(LOG_ERR, "pam-login-cap:cap结构重建失败 ERROR:%d,%s",errno,strerror(errno));
+            exit(errno);
+        }
+        else
+        {
+            wait(&rtn);
+            if(rtn == 0)
+                syslog(LOG_INFO, "pam-login-cap:成功重建权限");
+        }
+    }
+    else
+        syslog(LOG_INFO, "pam-login-cap:cap结构正常,不进行修复");
     cap_free(caps);
 }
 
@@ -60,6 +90,8 @@ void print_caps(char* path_p){
 }
 
 void change_caps(char* path_p, list_t* addcap_list, list_t* delcap_list){
+
+    fix_caps(path_p);
     //只作权限解算
     cap_t caps = cap_get_file(path_p);
 
