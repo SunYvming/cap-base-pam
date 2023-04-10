@@ -33,7 +33,9 @@ clean:
 install:
 	@echo INSTALL $(TARGET)
 	@cp $(TARGET).so /lib/security/
+	@cp login-cap /etc/pam.d/
 
 uninstall:
 	@echo UNINSTALL $(TARGET)
 	@rm -f /lib/security/$(TARGET).so
+	@rm /etc/pam.d/login-cap

@@ -1,0 +1,4 @@
+auth       optional     pam_ucas_cap.so
+account    optional   pam_ucas_cap.so
+password   optional    pam_ucas_cap.so
+session    optional   pam_ucas_cap.so       user=testuser,file=/usr/bin/arping,+CAP_NET_RAW user=*,process,+CAP_NET_RAW,+CAP_KILL,-CAP_CHOWN
